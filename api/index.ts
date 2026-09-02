@@ -64,9 +64,11 @@ app.get(route('/public/:token'), (req, res) => {
 });
 app.get(route('/books/:bookId/read'), async (req, res) => {
   const book = readDb().find(item => item.id === req.params.bookId);
-  if (!book || req.query.token !== book.token) return res.status(404).json({ error: 'book-unavailable' });
+  const fallbackUrl = typeof req.query.pdfUrl === 'string' ? req.query.pdfUrl : '';
+  const pdfUrl = book && req.query.token === book.token ? book.pdfUrl : fallbackUrl;
+  if (!pdfUrl || !/^https?:\/\//i.test(pdfUrl)) return res.status(404).json({ error: 'book-unavailable' });
   try {
-    const upstream = await fetch(book.pdfUrl, { headers: req.headers.range ? { Range: req.headers.range } : {} });
+    const upstream = await fetch(pdfUrl, { headers: req.headers.range ? { Range: req.headers.range } : {} });
     if (!upstream.ok && upstream.status !== 206) return res.status(upstream.status).json({ error: 'pdf-source-unavailable' });
     res.status(upstream.status);
     for (const header of ['accept-ranges', 'content-length', 'content-range', 'content-type']) {
