@@ -7,12 +7,10 @@ import { fileURLToPath } from 'node:url';
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
-const adminPassword = process.env.ADMIN_PASSWORD || 'change-this-password';
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(root, '../.private-data');
 const booksDir = path.join(dataDir, 'books');
 const dbPath = path.join(dataDir, 'books.json');
-const adminSessions = new Set<string>();
 fs.mkdirSync(booksDir, { recursive: true });
 const route = (pathname: string) => {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
@@ -23,21 +21,10 @@ type Book = { id: string; title: string; fileName: string; size: number; pages: 
 const readDb = (): Book[] => fs.existsSync(dbPath) ? JSON.parse(fs.readFileSync(dbPath, 'utf8')) : [];
 const writeDb = (books: Book[]) => fs.writeFileSync(dbPath, JSON.stringify(books, null, 2));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 }, fileFilter: (_, file, cb) => cb(null, file.mimetype === 'application/pdf') });
-const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const sessionToken = req.headers.authorization?.replace(/^Bearer\s+/, '');
-  if (!sessionToken || !adminSessions.has(sessionToken)) return res.status(401).json({ error: 'unauthorized' });
-  next();
-};
 app.use(express.json());
 app.get(route('/health'), (_, res) => res.json({ ok: true }));
-app.post(route('/admin/login'), (req, res) => {
-  if (req.body.password !== adminPassword) return res.status(401).json({ error: 'wrong-password' });
-  const sessionToken = crypto.randomBytes(32).toString('base64url');
-  adminSessions.add(sessionToken);
-  res.json({ token: sessionToken });
-});
-app.get(route('/admin/books'), requireAdmin, (_, res) => res.json(readDb()));
-app.post(route('/admin/books'), requireAdmin, upload.single('book'), (req, res) => {
+app.get(route('/admin/books'), (_, res) => res.json(readDb()));
+app.post(route('/admin/books'), upload.single('book'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'pdf-required' });
   const id = crypto.randomUUID();
   const token = crypto.randomBytes(18).toString('base64url');
@@ -46,7 +33,7 @@ app.post(route('/admin/books'), requireAdmin, upload.single('book'), (req, res) 
   fs.writeFileSync(path.join(booksDir, book.fileName), req.file.buffer);
   const books = [...readDb(), book]; writeDb(books); res.status(201).json(book);
 });
-app.delete(route('/admin/books/:id'), requireAdmin, (req, res) => {
+app.delete(route('/admin/books/:id'), (req, res) => {
   const books = readDb(); const book = books.find(item => item.id === req.params.id);
   if (!book) return res.sendStatus(404);
   fs.rmSync(path.join(booksDir, book.fileName), { force: true }); writeDb(books.filter(item => item.id !== book.id)); res.sendStatus(204);
