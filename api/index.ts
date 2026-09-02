@@ -28,7 +28,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500
 app.use(express.json());
 app.get(route('/health'), (_, res) => res.json({ ok: true }));
 app.get(['/api/books', '/books', '/api/admin/books'], (_, res) => res.json(readDb()));
-app.post(route('/admin/books'), upload.single('book'), (req, res) => {
+app.post(['/api/books', '/books', '/api/admin/books'], upload.single('book'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'pdf-required' });
   const id = crypto.randomUUID();
   const token = crypto.randomBytes(18).toString('base64url');
@@ -37,7 +37,7 @@ app.post(route('/admin/books'), upload.single('book'), (req, res) => {
   fs.writeFileSync(path.join(booksDir, book.fileName), req.file.buffer);
   const books = [...readDb(), book]; writeDb(books); res.status(201).json(book);
 });
-app.delete(route('/admin/books/:id'), (req, res) => {
+app.delete(['/api/books/:id', '/books/:id', '/api/admin/books/:id'], (req, res) => {
   const books = readDb(); const book = books.find(item => item.id === req.params.id);
   if (!book) return res.sendStatus(404);
   fs.rmSync(path.join(booksDir, book.fileName), { force: true }); writeDb(books.filter(item => item.id !== book.id)); res.sendStatus(204);
