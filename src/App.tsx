@@ -4,7 +4,7 @@ import { Admin } from './pages/Admin';
 import { Library } from './pages/Library';
 import { Reader } from './pages/Reader';
 
-export type Book = { id: string; title: string; size: number; pages: number; uploadedAt: string; token: string };
+export type Book = { id: string; title: string; pdfUrl: string; size: number; pages: number; uploadedAt: string; token: string };
 export const formatSize = (bytes: number) => bytes > 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`;
 export const api = async (url: string, options?: RequestInit) => { const response = await fetch(url, options); if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'request-failed'); return response.status === 204 ? null : response.json(); };
 
