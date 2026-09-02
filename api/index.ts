@@ -11,7 +11,11 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.resolve(root, '../.private-data');
 const booksDir = path.join(dataDir, 'books');
 const dbPath = path.join(dataDir, 'books.json');
-fs.mkdirSync(booksDir, { recursive: true });
+try {
+  fs.mkdirSync(booksDir, { recursive: true });
+} catch (error) {
+  console.error('Unable to initialize private book storage', error);
+}
 const route = (pathname: string) => {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
   return normalized.startsWith('/api/') ? [normalized, normalized.slice(4)] : [`/api${normalized}`, normalized];
@@ -55,6 +59,9 @@ app.get(route('/books/:bookId/read'), (req, res) => {
 });
 const clientDist = path.resolve(root, '../dist');
 if (fs.existsSync(clientDist)) { app.use(express.static(clientDist)); app.get(/.*/, (_, res) => res.sendFile(path.join(clientDist, 'index.html'))); }
-app.listen(port, () => console.log(`Private Book Reader server running on http://localhost:${port}`));
+
+if (!process.env.VERCEL) {
+  app.listen(port, () => console.log(`Private Book Reader server running on http://localhost:${port}`));
+}
 
 export default app;
