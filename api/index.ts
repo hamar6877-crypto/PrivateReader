@@ -27,7 +27,7 @@ const writeDb = (books: Book[]) => fs.writeFileSync(dbPath, JSON.stringify(books
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 500 * 1024 * 1024 }, fileFilter: (_, file, cb) => cb(null, file.mimetype === 'application/pdf') });
 app.use(express.json());
 app.get(route('/health'), (_, res) => res.json({ ok: true }));
-app.get(route('/admin/books'), (_, res) => res.json(readDb()));
+app.get(['/api/books', '/books', '/api/admin/books'], (_, res) => res.json(readDb()));
 app.post(route('/admin/books'), upload.single('book'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'pdf-required' });
   const id = crypto.randomUUID();
