@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Readable } from 'node:stream';
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
@@ -61,10 +62,25 @@ app.get(route('/public/:token'), (req, res) => {
   if (!book) return res.status(404).json({ error: 'invalid-link' });
   res.json({ books: readDb().map(({ id, title, pdfUrl, size, pages, uploadedAt, token }) => ({ id, title, pdfUrl, size, pages, uploadedAt, token })) });
 });
-app.get(route('/books/:bookId/read'), (req, res) => {
+app.get(route('/books/:bookId/read'), async (req, res) => {
   const book = readDb().find(item => item.id === req.params.bookId);
   if (!book || req.query.token !== book.token) return res.status(404).json({ error: 'book-unavailable' });
-  res.redirect(book.pdfUrl);
+  try {
+    const upstream = await fetch(book.pdfUrl, { headers: req.headers.range ? { Range: req.headers.range } : {} });
+    if (!upstream.ok && upstream.status !== 206) return res.status(upstream.status).json({ error: 'pdf-source-unavailable' });
+    res.status(upstream.status);
+    for (const header of ['accept-ranges', 'content-length', 'content-range', 'content-type']) {
+      const value = upstream.headers.get(header);
+      if (value) res.setHeader(header, value);
+    }
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    if (!upstream.body) return res.end();
+    Readable.fromWeb(upstream.body as import('node:stream/web').ReadableStream).pipe(res);
+  } catch (error) {
+    console.error('Unable to proxy PDF source', error);
+    res.status(502).json({ error: 'pdf-source-unavailable' });
+  }
 });
 const clientDist = path.resolve(root, '../dist');
 if (fs.existsSync(clientDist)) { app.use(express.static(clientDist)); app.get(/.*/, (_, res) => res.sendFile(path.join(clientDist, 'index.html'))); }
