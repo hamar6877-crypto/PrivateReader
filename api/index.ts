@@ -54,7 +54,7 @@ app.post(['/api/books', '/books', '/api/admin/books'], (req, res) => {
 });
 app.delete(['/api/books/:id', '/books/:id', '/api/admin/books/:id'], (req, res) => {
   const books = readDb(); const book = books.find(item => item.id === req.params.id);
-  if (!book) return res.sendStatus(404);
+  if (!book) return res.sendStatus(204);
   writeDb(books.filter(item => item.id !== book.id)); res.sendStatus(204);
 });
 app.get(route('/public/:token'), (req, res) => {
