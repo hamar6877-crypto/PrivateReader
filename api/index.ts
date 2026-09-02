@@ -7,16 +7,38 @@ import { fileURLToPath } from 'node:url';
 const app = express();
 const port = Number(process.env.PORT || 4000);
 const root = path.dirname(fileURLToPath(import.meta.url));
-const dataDir = path.resolve(root, '../.private-data');
+const dataDir = process.env.VERCEL ? path.join('/tmp', 'private-book-reader') : path.resolve(root, '../.private-data');
 const dbPath = path.join(dataDir, 'books.json');
+try {
+  fs.mkdirSync(dataDir, { recursive: true });
+} catch (error) {
+  console.error('Unable to initialize book metadata storage', error);
+}
 const route = (pathname: string) => {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`;
   return normalized.startsWith('/api/') ? [normalized, normalized.slice(4)] : [`/api${normalized}`, normalized];
 };
 
 type Book = { id: string; title: string; pdfUrl: string; size: number; pages: number; uploadedAt: string; token: string };
-const readDb = (): Book[] => fs.existsSync(dbPath) ? JSON.parse(fs.readFileSync(dbPath, 'utf8')) : [];
-const writeDb = (books: Book[]) => fs.writeFileSync(dbPath, JSON.stringify(books, null, 2));
+let memoryBooks: Book[] = [];
+const readDb = (): Book[] => {
+  try {
+    if (!fs.existsSync(dbPath)) return memoryBooks;
+    memoryBooks = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+    return memoryBooks;
+  } catch (error) {
+    console.error('Unable to read book metadata', error);
+    return memoryBooks;
+  }
+};
+const writeDb = (books: Book[]) => {
+  memoryBooks = books;
+  try {
+    fs.writeFileSync(dbPath, JSON.stringify(books, null, 2));
+  } catch (error) {
+    console.error('Unable to persist book metadata', error);
+  }
+};
 app.use(express.json());
 app.get(route('/health'), (_, res) => res.json({ ok: true }));
 app.get(['/api/books', '/books', '/api/admin/books'], (_, res) => res.json(readDb()));
