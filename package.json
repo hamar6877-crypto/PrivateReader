@@ -1,0 +1,33 @@
+{
+  "name": "private-book-reader",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite --host 0.0.0.0",
+    "dev:server": "tsx server/server.ts",
+    "build": "tsc -b && tsc -p tsconfig.server.json && vite build",
+    "start": "node dist-server/server.js"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "clsx": "latest",
+    "concurrently": "latest",
+    "express": "latest",
+    "lucide-react": "latest",
+    "multer": "latest",
+    "pdfjs-dist": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/express": "latest",
+    "@types/multer": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest"
+  }
+}
