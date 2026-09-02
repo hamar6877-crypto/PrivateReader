@@ -23,8 +23,8 @@ These are routes in one website, not two websites. In production the Express ser
 
 ## Uploading and sharing
 
-1. Sign in at `/admin` with `ADMIN_PASSWORD`.
-2. Choose **زیادکردنی کتێب**, select a PDF, and optionally provide a title.
+1. Open `/admin`.
+2. Choose **زیادکردنی کتێب**, enter a title and paste a direct PDF URL. The form includes the supplied Internet Archive link as a one-click preset.
 3. Use the copy icon on the book row. The resulting `/read/<random-token>` URL is the private reading link to send to your friend.
 4. Deleting a book removes both its metadata and private file.
 
